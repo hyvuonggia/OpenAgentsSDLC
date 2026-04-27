@@ -133,6 +133,16 @@ curl -fsSL https://raw.githubusercontent.com/darrenhinde/OpenAgentsControl/main/
 bash install.sh
 ```
 
+**Install to global scope (user-wide):**
+
+If you want to install OpenAgents Control for your user (global scope), run the installer and specify an install directory. Example (installs to `~/.config/opencode`):
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/hyvuonggia/OpenAgentsSDLC/main/install.sh | bash -s developer --install-dir ~/.config/opencode
+```
+
+This makes the agents and commands available across your projects for the current user.
+
 ### Keep Updated
 
 ```bash
@@ -426,6 +436,35 @@ Interactive wizard generates orchestrators, subagents, context files, workflows,
 
 **Perfect for:** Creating domain-specific AI systems
 
+### OpenSDLC (Enterprise Agile / Scrum)
+
+**Best for:** Regulated, audit-heavy, or team-scale projects that need a real Scrum process — not just code generation.
+
+```bash
+opencode --agent OpenSDLC
+> "Plan and deliver an MVP for a B2B invoicing service"
+```
+
+**What it does:**
+- Runs a full **Agile Scrum team** of subagents:
+  - **ProductOwner** — backlog, story refinement, acceptance against AC
+  - **ScrumMaster** — sprint planning, ceremonies, capacity, DoR/DoD enforcement
+  - **ReleaseManager** — semver, changelog, sign-offs, deployment + post-release validation
+  - **StoryMapper / ArchitectureAnalyzer / PrioritizationEngine / ADRManager / ContractManager** — planning specialists
+  - **TaskManager / CoderAgent / TestEngineer / CodeReviewer / BuildAgent / DocWriter** — delivery pipeline
+- Maintains a **markdown ticketing system** under `.sdlc/` (epics, stories, tasks, defects, sprints, ADRs, releases, retros) — your audit trail.
+- Enforces **Definition of Ready** before stories enter a sprint and **Definition of Done** before they leave it.
+- **Approval gates** at every commitment point: epic shape, sprint commitment, release sign-off.
+- **Stop-on-failure**: test/build failures auto-create `BUG-XXXX.md` for triage instead of silent retries.
+- **Separation of duties**: the agent that wrote the code never reviews it.
+
+**Install it:**
+```bash
+bash install.sh sdlc
+```
+
+**Perfect for:** Enterprise teams, regulated industries, multi-sprint projects, anything that needs traceability from user need → release.
+
 ---
 
 ## 🛠️ What's Included
@@ -433,6 +472,7 @@ Interactive wizard generates orchestrators, subagents, context files, workflows,
 ### 🤖 Main Agents
 - **OpenAgent** - General tasks, questions, learning (start here)
 - **OpenCoder** - Production development, complex features
+- **OpenSDLC** - Enterprise Agile/Scrum team with PO, SM, Release Manager, and full markdown SDLC tracking under `.sdlc/`
 - **SystemBuilder** - Generate custom AI systems
 
 ### 🔧 Specialized Subagents (Auto-delegated)
@@ -444,6 +484,8 @@ Interactive wizard generates orchestrators, subagents, context files, workflows,
 - **BuildAgent** - Type checking and build validation
 - **DocWriter** - Documentation generation
 - **ExternalScout** - Fetches live docs for external libraries (no outdated training data) **NEW!**
+- **ProductOwner / ScrumMaster / ReleaseManager** - Scrum role agents that power OpenSDLC **NEW!**
+- **StoryMapper / ArchitectureAnalyzer / PrioritizationEngine / ADRManager / ContractManager** - Planning specialists for OpenSDLC **NEW!**
 - Plus category specialists: frontend, devops, copywriter, technical-writer, data-analyst
 
 ### ⚡ Productivity Commands

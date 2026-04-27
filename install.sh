@@ -504,7 +504,7 @@ check_interactive_mode() {
         echo -e "${CYAN}# Quick install with profile${NC}"
         echo "curl -fsSL https://raw.githubusercontent.com/darrenhinde/OpenAgentsControl/main/install.sh | bash -s essential"
         echo ""
-        echo "Available profiles: essential, developer, business, full, advanced"
+        echo "Available profiles: essential, developer, business, full, advanced, sdlc"
         echo ""
         cleanup_and_exit 1
     fi
@@ -689,10 +689,27 @@ show_profile_menu() {
     echo -e "  ${YELLOW}5) ${adv_name}${NC}"
     echo -e "     ${adv_desc}"
     echo -e "     Components: ${adv_count}\n"
-    
-    echo "  6) Back to main menu"
+
+    # SDLC profile (Enterprise Scrum)
+    local sdlc_name
+    sdlc_name=$(jq_exec '.profiles.sdlc.name' "$TEMP_DIR/registry.json")
+    local sdlc_desc
+    sdlc_desc=$(jq_exec '.profiles.sdlc.description' "$TEMP_DIR/registry.json")
+    local sdlc_count
+    sdlc_count=$(jq_exec '.profiles.sdlc.components | length' "$TEMP_DIR/registry.json")
+    local sdlc_badge
+    sdlc_badge=$(jq_exec '.profiles.sdlc.badge // ""' "$TEMP_DIR/registry.json")
+    if [ -n "$sdlc_badge" ]; then
+        echo -e "  ${RED}6) ${sdlc_name} ${GREEN}[${sdlc_badge}]${NC}"
+    else
+        echo -e "  ${RED}6) ${sdlc_name}${NC}"
+    fi
+    echo -e "     ${sdlc_desc}"
+    echo -e "     Components: ${sdlc_count}\n"
+
+    echo "  7) Back to main menu"
     echo ""
-    read -r -p "Enter your choice [1-6]: " choice
+    read -r -p "Enter your choice [1-7]: " choice
     
     case $choice in
         1) PROFILE="essential" ;;
@@ -700,7 +717,8 @@ show_profile_menu() {
         3) PROFILE="business" ;;
         4) PROFILE="full" ;;
         5) PROFILE="advanced" ;;
-        6) show_main_menu; return ;;
+        6) PROFILE="sdlc" ;;
+        7) show_main_menu; return ;;
         *) print_error "Invalid choice"; sleep 2; show_profile_menu; return ;;
     esac
     
@@ -1384,6 +1402,12 @@ main() {
                 NON_INTERACTIVE=true
                 shift
                 ;;
+            sdlc|--sdlc)
+                INSTALL_MODE="profile"
+                PROFILE="sdlc"
+                NON_INTERACTIVE=true
+                shift
+                ;;
             list|--list)
                 check_dependencies
                 fetch_registry
@@ -1400,6 +1424,7 @@ main() {
                 echo "  business, --business      Content and business-focused tools"
                 echo "  full, --full              Everything except system-builder"
                 echo "  advanced, --advanced      Complete system with all components"
+                echo "  sdlc, --sdlc              Enterprise SDLC + Agile Scrum team (OpenSDLC)"
                 echo ""
                 echo -e "${BOLD}Options:${NC}"
                 echo "  --install-dir PATH        Custom installation directory"

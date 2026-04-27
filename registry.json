@@ -134,6 +134,43 @@
           "context:external-libraries-workflow"
         ],
         "category": "core"
+      },
+      {
+        "id": "opensdlc",
+        "name": "OpenSDLC",
+        "type": "agent",
+        "path": ".opencode/agent/core/opensdlc.md",
+        "description": "Enterprise SDLC orchestrator running a full Agile/Scrum team (PO, SM, Dev, QA, Release) with markdown ticketing, sprint cadence, and DoD enforcement",
+        "tags": [
+          "sdlc",
+          "scrum",
+          "agile",
+          "enterprise",
+          "orchestration"
+        ],
+        "dependencies": [
+          "subagent:product-owner",
+          "subagent:scrum-master",
+          "subagent:release-manager",
+          "subagent:story-mapper",
+          "subagent:architecture-analyzer",
+          "subagent:prioritization-engine",
+          "subagent:adr-manager",
+          "subagent:contract-manager",
+          "subagent:task-manager",
+          "subagent:contextscout",
+          "subagent:externalscout",
+          "subagent:coder-agent",
+          "subagent:tester",
+          "subagent:reviewer",
+          "subagent:build-agent",
+          "subagent:documentation",
+          "context:standards-code",
+          "context:standards-tests",
+          "context:standards-docs",
+          "context:component-planning"
+        ],
+        "category": "core"
       }
     ],
     "subagents": [
@@ -335,7 +372,7 @@
         "type": "subagent",
         "path": ".opencode/agent/subagents/core/contextscout.md",
         "version": "5.1.0",
-        "description": "Get accurate context FIRST before diving deep\u2014save time, energy, and avoid rework. ContextScout intelligently discovers and retrieves the exact context files you need with precise file paths and line ranges, so you start with the right information instead of guessing. Optimized for multi-model compatibility (Claude, Gemini, GPT-4) with 20% token reduction.",
+        "description": "Get accurate context FIRST before diving deep—save time, energy, and avoid rework. ContextScout intelligently discovers and retrieves the exact context files you need with precise file paths and line ranges, so you start with the right information instead of guessing. Optimized for multi-model compatibility (Claude, Gemini, GPT-4) with 20% token reduction.",
         "tags": [
           "context",
           "search",
@@ -418,6 +455,126 @@
         ],
         "dependencies": [],
         "category": "core"
+      },
+      {
+        "id": "scrum-master",
+        "name": "ScrumMaster",
+        "type": "subagent",
+        "path": ".opencode/agent/subagents/planning/scrum-master.md",
+        "description": "Scrum process owner — runs ceremonies, plans sprints to capacity, enforces DoR/DoD, tracks velocity, removes blockers",
+        "tags": [
+          "scrum",
+          "sprint",
+          "ceremonies",
+          "process",
+          "agile"
+        ],
+        "dependencies": [],
+        "category": "essential"
+      },
+      {
+        "id": "product-owner",
+        "name": "ProductOwner",
+        "type": "subagent",
+        "path": ".opencode/agent/subagents/planning/product-owner.md",
+        "description": "Product Owner — owns the backlog, refines stories with DoR, prioritizes value, accepts/rejects work against acceptance criteria",
+        "tags": [
+          "product",
+          "backlog",
+          "stories",
+          "acceptance"
+        ],
+        "dependencies": [
+          "subagent:prioritization-engine"
+        ],
+        "category": "essential"
+      },
+      {
+        "id": "release-manager",
+        "name": "ReleaseManager",
+        "type": "subagent",
+        "path": ".opencode/agent/subagents/planning/release-manager.md",
+        "description": "Release Manager — plans releases, manages semver + changelog, coordinates sign-offs and post-release validation",
+        "tags": [
+          "release",
+          "semver",
+          "changelog",
+          "deployment"
+        ],
+        "dependencies": [],
+        "category": "standard"
+      },
+      {
+        "id": "story-mapper",
+        "name": "StoryMapper",
+        "type": "subagent",
+        "path": ".opencode/agent/subagents/planning/story-mapper.md",
+        "description": "User journey mapping specialist — transforms user needs into epics, stories, and vertical slices aligned with bounded contexts",
+        "tags": [
+          "planning",
+          "stories",
+          "epics",
+          "journeys"
+        ],
+        "dependencies": [],
+        "category": "standard"
+      },
+      {
+        "id": "architecture-analyzer",
+        "name": "ArchitectureAnalyzer",
+        "type": "subagent",
+        "path": ".opencode/agent/subagents/planning/architecture-analyzer.md",
+        "description": "DDD-driven architecture analyzer — identifies bounded contexts, module boundaries, and domain relationships",
+        "tags": [
+          "architecture",
+          "ddd",
+          "bounded-context"
+        ],
+        "dependencies": [],
+        "category": "standard"
+      },
+      {
+        "id": "prioritization-engine",
+        "name": "PrioritizationEngine",
+        "type": "subagent",
+        "path": ".opencode/agent/subagents/planning/prioritization-engine.md",
+        "description": "Backlog scoring engine — RICE/WSJF prioritization with MVP and post-MVP release slicing",
+        "tags": [
+          "prioritization",
+          "rice",
+          "wsjf",
+          "mvp"
+        ],
+        "dependencies": [],
+        "category": "standard"
+      },
+      {
+        "id": "adr-manager",
+        "name": "ADRManager",
+        "type": "subagent",
+        "path": ".opencode/agent/subagents/planning/adr-manager.md",
+        "description": "Records Architecture Decision Records (ADRs) for significant architectural choices",
+        "tags": [
+          "adr",
+          "architecture",
+          "decisions"
+        ],
+        "dependencies": [],
+        "category": "standard"
+      },
+      {
+        "id": "contract-manager",
+        "name": "ContractManager",
+        "type": "subagent",
+        "path": ".opencode/agent/subagents/planning/contract-manager.md",
+        "description": "Defines and validates API/service contracts between modules and bounded contexts",
+        "tags": [
+          "contracts",
+          "api",
+          "schemas"
+        ],
+        "dependencies": [],
+        "category": "standard"
       }
     ],
     "commands": [
@@ -808,7 +965,7 @@
         "name": "Project Context",
         "type": "context",
         "path": ".opencode/context/project/project-context.md",
-        "description": "\u26d4 DEPRECATED: Replaced by project-intelligence/technical-domain.md",
+        "description": "⛔ DEPRECATED: Replaced by project-intelligence/technical-domain.md",
         "tags": [
           "deprecated",
           "context",
@@ -2652,7 +2809,7 @@
         "name": "Agent Metadata",
         "type": "context",
         "path": ".opencode/context/openagents-repo/core-concepts/agent-metadata.md",
-        "description": "...\\\"               # \u2705 Valid OpenCode field",
+        "description": "...\\\"               # ✅ Valid OpenCode field",
         "tags": [
           "development",
           "coding"
@@ -3283,7 +3440,16 @@
         "config:env-example",
         "config:agent-metadata",
         "config:readme",
-        "context:openagents-repo/*"
+        "context:openagents-repo/*",
+        "agent:opensdlc",
+        "subagent:product-owner",
+        "subagent:scrum-master",
+        "subagent:release-manager",
+        "subagent:story-mapper",
+        "subagent:architecture-analyzer",
+        "subagent:prioritization-engine",
+        "subagent:adr-manager",
+        "subagent:contract-manager"
       ]
     },
     "advanced": {
@@ -3357,11 +3523,66 @@
         "context:codebase-references",
         "config:env-example",
         "config:agent-metadata",
-        "config:readme"
+        "config:readme",
+        "agent:opensdlc",
+        "subagent:product-owner",
+        "subagent:scrum-master",
+        "subagent:release-manager",
+        "subagent:story-mapper",
+        "subagent:architecture-analyzer",
+        "subagent:prioritization-engine",
+        "subagent:adr-manager",
+        "subagent:contract-manager"
       ],
       "additionalPaths": [
         ".Building/",
         ".github/workflows/"
+      ]
+    },
+    "sdlc": {
+      "name": "SDLC (Enterprise Scrum)",
+      "description": "Enterprise SDLC + Agile Scrum team: OpenSDLC orchestrator with Product Owner, Scrum Master, Release Manager, planning specialists, and the full development pipeline. Includes markdown-based ticketing under .sdlc/.",
+      "badge": "ENTERPRISE",
+      "components": [
+        "agent:openagent",
+        "agent:opensdlc",
+        "agent:opencoder",
+        "subagent:product-owner",
+        "subagent:scrum-master",
+        "subagent:release-manager",
+        "subagent:story-mapper",
+        "subagent:architecture-analyzer",
+        "subagent:prioritization-engine",
+        "subagent:adr-manager",
+        "subagent:contract-manager",
+        "subagent:task-manager",
+        "subagent:coder-agent",
+        "subagent:reviewer",
+        "subagent:tester",
+        "subagent:build-agent",
+        "subagent:documentation",
+        "subagent:contextscout",
+        "subagent:externalscout",
+        "skill:task-management",
+        "command:commit",
+        "command:test",
+        "command:context",
+        "command:add-context",
+        "command:clean",
+        "command:validate-repo",
+        "tool:env",
+        "context:essential-patterns",
+        "context:project-context",
+        "context:quick-start",
+        "context:core/*",
+        "context:project-intelligence/*",
+        "context:standards-code",
+        "context:standards-tests",
+        "context:standards-docs",
+        "context:adding-skill-basics",
+        "config:env-example",
+        "config:agent-metadata",
+        "config:readme"
       ]
     }
   },
