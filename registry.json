@@ -3353,7 +3353,16 @@
         "config:env-example",
         "config:agent-metadata",
         "config:readme",
-        "context:openagents-repo/*"
+        "context:openagents-repo/*",
+        "agent:opensdlc",
+        "subagent:product-owner",
+        "subagent:scrum-master",
+        "subagent:release-manager",
+        "subagent:story-mapper",
+        "subagent:architecture-analyzer",
+        "subagent:prioritization-engine",
+        "subagent:adr-manager",
+        "subagent:contract-manager"
       ]
     },
     "business": {

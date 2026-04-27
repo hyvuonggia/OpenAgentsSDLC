@@ -122,8 +122,10 @@ Use any AI model (Claude, GPT, Gemini, local). No vendor lock-in.
 **One command:**
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/darrenhinde/OpenAgentsControl/main/install.sh | bash -s developer
+curl -fsSL https://raw.githubusercontent.com/hyvuonggia/OpenAgentsSDLC/main/install.sh | bash -s developer
 ```
+
+> Installs **OpenAgent**, **OpenCoder**, **OpenSDLC** (Enterprise Scrum team), and all supporting subagents.
 
 <sub>The installer will set up OpenCode CLI if you don't have it yet.</sub>
 
@@ -135,13 +137,17 @@ bash install.sh
 
 **Install to global scope (user-wide):**
 
-If you want to install OpenAgents Control for your user (global scope), run the installer and specify an install directory. Example (installs to `~/.config/opencode`):
+Add `--install-dir ~/.config/opencode` to any profile to install globally (available across all your projects for the current user):
 
 ```bash
+# Developer tools — includes OpenAgent, OpenCoder, AND OpenSDLC (Scrum team)
 curl -fsSL https://raw.githubusercontent.com/hyvuonggia/OpenAgentsSDLC/main/install.sh | bash -s developer --install-dir ~/.config/opencode
+
+# SDLC-only profile (same SDLC agents, leaner install)
+curl -fsSL https://raw.githubusercontent.com/hyvuonggia/OpenAgentsSDLC/main/install.sh | bash -s sdlc --install-dir ~/.config/opencode
 ```
 
-This makes the agents and commands available across your projects for the current user.
+> Both `developer` and `sdlc` profiles include OpenSDLC. Use `developer` for the full coding + SDLC toolkit.
 
 ### Keep Updated
 
@@ -459,9 +465,18 @@ opencode --agent OpenSDLC
 - **Separation of duties**: the agent that wrote the code never reviews it.
 
 **Install it:**
+
+*Local (project-specific):*
 ```bash
-bash install.sh sdlc
+curl -fsSL https://raw.githubusercontent.com/hyvuonggia/OpenAgentsSDLC/main/install.sh | bash -s developer
 ```
+
+*Global (user-wide, available across all your projects):*
+```bash
+curl -fsSL https://raw.githubusercontent.com/hyvuonggia/OpenAgentsSDLC/main/install.sh | bash -s developer --install-dir ~/.config/opencode
+```
+
+> **Note:** OpenSDLC is included in both the `developer` and `sdlc` profiles.
 
 **Perfect for:** Enterprise teams, regulated industries, multi-sprint projects, anything that needs traceability from user need → release.
 
