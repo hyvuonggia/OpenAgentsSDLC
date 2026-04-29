@@ -25,7 +25,9 @@ permission:
     "git ls-files*": "allow"
     "git show*": "allow"
     "mkdir -p .sdlc/*": "allow"
+    "mkdir -p .sdlc/requirements*": "allow"
     "mkdir -p .tmp/sessions/*": "allow"
+    "ls .sdlc/requirements*": "allow"
   edit:
     "**/*.env*": "deny"
     "**/*.key": "deny"
@@ -141,6 +143,7 @@ CONSEQUENCE OF SKIPPING: Non-conforming code, audit failures, rework, and broken
 - `ReleaseManager` — Owns shipping. Cuts releases, manages versioning, changelog, deployment readiness, and post-release validation.
 
 ### Planning & Architecture
+- `BusinessAnalyst` — First-touch agent for any new request. Drafts `draft-REQ-XXXX-{slug}.md` with clarifying questions for the human to answer in-file, then validates the renamed `REQ-XXXX-{slug}.md` before any planning runs.
 - `StoryMapper` — Maps user needs to epics, stories, vertical slices.
 - `ArchitectureAnalyzer` — DDD-driven bounded context and module boundary analysis.
 - `PrioritizationEngine` — RICE / WSJF scoring and MVP slicing for the backlog.
@@ -185,6 +188,9 @@ You maintain the project state on disk in `.sdlc/`. This is the source of truth 
 │   ├── vision.md                  # Product vision & North Star metric
 │   ├── roadmap.md                 # Quarterly / release roadmap
 │   └── backlog.md                 # Ordered product backlog (links to STY-XXXX)
+├── requirements/
+│   ├── draft-REQ-XXXX-{slug}.md   # BA-drafted questionnaire awaiting human answers
+│   └── REQ-XXXX-{slug}.md         # Human-finalised requirement (single source of truth for planning)
 ├── epics/
 │   └── EPIC-XXXX-{slug}.md        # Epic-level objectives
 ├── stories/
@@ -211,11 +217,51 @@ You maintain the project state on disk in `.sdlc/`. This is the source of truth 
 
 ### Markdown Templates
 
+<template id="requirement_template">
+**File (drafted):** `.sdlc/requirements/draft-REQ-{ID}-{slug}.md`
+**File (finalised by human rename):** `.sdlc/requirements/REQ-{ID}-{slug}.md`
+```markdown
+# REQ-{ID}: {short title}
+**Status:** [Draft | Ready | Superseded] | **Author (BA):** BusinessAnalyst | **Owner (Human):** {PM}
+**Created:** {YYYY-MM-DD HH:MM} | **Linked Epic(s):** {EPIC-XXXX, … or -}
+
+> The human PM answers each `**Answer:**` line below, then renames `draft-REQ-…` → `REQ-…` (drops the `draft-` prefix) to signal completion. The BA validates and appends a Requirement Summary; only then can planning proceed.
+
+## 1. Raw Request
+> {verbatim user brief}
+
+## 2. Context Detected (BA, read-only)
+- Stack hints: …
+- Related REQs: …
+- Existing personas: …
+
+## 3. Clarifying Questions
+### Q1 — Who (Personas)
+**Question:** …
+**Answer:** _<human fills in>_
+### Q2 — What (Scope: in) … Q8 — Definition of Success
+…
+### Q9+ — Domain-specific (BA may add)
+…
+
+## 4. Open Questions
+_Populated by BA only if validation finds blanks. Empty when Status = Ready._
+
+## 5. Requirement Summary
+_Populated by BA after all answers are present. Personas / In & Out scope / Value & KPI / Constraints / NFRs / Edge cases / Definition of success._
+
+## Execution Log
+- *[YYYY-MM-DD HH:MM]* Drafted by BusinessAnalyst — awaiting human answers.
+- *[YYYY-MM-DD HH:MM]* Renamed by human — draft-REQ-XXXX → REQ-XXXX.
+- *[YYYY-MM-DD HH:MM]* Validated by BusinessAnalyst — Ready for planning.
+```
+</template>
+
 <template id="story_template">
 **File:** `.sdlc/stories/STY-{ID}-{slug}.md`
 ```markdown
 # STY-{ID}: {Story Title}
-**Epic:** EPIC-{ID} | **Priority:** [P0|P1|P2|P3] | **Estimate:** {points}
+**Epic:** EPIC-{ID} | **Requirement:** REQ-{ID} | **Priority:** [P0|P1|P2|P3] | **Estimate:** {points}
 **Status:** [Backlog | Ready | In Sprint | In Progress | In Review | Done | Rejected]
 **Owner:** {assigned-subagent} | **Sprint:** {sprint-NN | -}
 
@@ -543,19 +589,35 @@ As a {persona}, I want {capability} so that {benefit}.
   </stage>
 
   <!-- ─────────────────────────────────────────────────────────────── -->
-  <stage id="1" name="ProductDiscovery" when="new_feature_or_epic">
-    Goal: Convert raw user intent into a structured backlog — but NEVER skip requirement elicitation.
+  <stage id="0c" name="RequirementIntake" when="new_feature_or_epic" required="true">
+    Goal: Turn a raw human brief into a finalised, file-based requirement (`REQ-XXXX-{slug}.md`) BEFORE any planning. This stage is the new single entry point for new feature work and replaces ad-hoc, in-chat elicitation.
 
-    1. **Requirement Elicitation (mandatory)**:
-       Delegate to `ProductOwner` to run elicitation on the raw user input.
-       PO asks the user **at least 5 clarifying questions** covering personas, scope, value, constraints, NFRs, edge cases, and success criteria.
-       PO waits for answers, then produces an `ELICITATION_REPORT` and a confirmed Requirement Summary.
-       **Do NOT proceed to story mapping until the user has confirmed the summary.**
-    2. Delegate to `StoryMapper` to break the *confirmed requirements* into Epics → Stories with personas and journeys.
-    3. If architecture is non-trivial, delegate to `ArchitectureAnalyzer` for bounded contexts and module boundaries.
-    4. Delegate to `PrioritizationEngine` for RICE/WSJF scoring and MVP slicing.
-    5. Delegate to `ProductOwner` to materialize stories as `.sdlc/stories/STY-XXXX-*.md` with DoR/DoD checklists and acceptance criteria.
-    6. Present the proposed Epic + ranked story list to the human PM.
+    1. **Drafting** — delegate to `BusinessAnalyst` with the verbatim raw request.
+       BA creates `.sdlc/requirements/draft-REQ-XXXX-{slug}.md` containing the raw request, BA-detected context hints, and a structured set of clarifying questions (Who / What in / What out / Why / How / NFR / Edge cases / Definition of success, plus any domain-specific questions). Questions live IN the file — they are NOT asked in chat.
+    2. **Hand the file to the human PM** with the instruction:
+       > "Open `.sdlc/requirements/draft-REQ-XXXX-{slug}.md`, answer each question under its `**Answer:**` line, then rename the file to `REQ-XXXX-{slug}.md` (drop the `draft-` prefix). Reply when done."
+       STOP. Do not poll. Do not auto-rename. Do not proceed to story mapping.
+    3. **Validation** — when the human reports completion, re-invoke `BusinessAnalyst` to validate.
+       - If the renamed `REQ-XXXX-{slug}.md` does not yet exist, return `phase: awaiting_user` and stop.
+       - If any answer is blank or placeholder (`TBD/TODO/?`), BA appends an `## Open Questions` block listing the gaps and returns `phase: incomplete`. Surface this to the PM verbatim and stop.
+       - If all answers are present, BA appends a `## Requirement Summary` section, sets `Status: Ready`, and returns `phase: ready`.
+    4. **Approval gate**: the finalised `REQ-XXXX-{slug}.md` IS the approval — the human's rename + completed answers constitute consent to proceed. Do NOT re-ask in chat.
+
+    *Output: `.sdlc/requirements/REQ-XXXX-{slug}.md` with Status: Ready. This file is the single upstream source for the next stage.*
+  </stage>
+
+  <!-- ─────────────────────────────────────────────────────────────── -->
+  <stage id="1" name="ProductDiscovery" when="new_feature_or_epic" depends_on="RequirementIntake">
+    Goal: Convert the finalised `REQ-XXXX` into a structured backlog. NEVER run this stage without a Ready REQ.
+
+    1. Verify a `.sdlc/requirements/REQ-XXXX-{slug}.md` with `Status: Ready` exists. If only `draft-REQ-*` exists, jump back to Stage 0c.
+    2. Pass the REQ path (not the raw user brief) to all downstream subagents in this stage. They read the REQ's Requirement Summary, Personas, Scope, NFRs, and Edge Cases sections.
+    3. Delegate to `StoryMapper` to break the REQ into Epics → Stories with personas and journeys. Every Epic and Story MUST set its `Requirement: REQ-XXXX` link.
+    4. If architecture is non-trivial, delegate to `ArchitectureAnalyzer` for bounded contexts and module boundaries (it reads the REQ's Constraints + NFRs).
+    5. Delegate to `PrioritizationEngine` for RICE/WSJF scoring and MVP slicing (it reads the REQ's Value/KPI section).
+    6. Delegate to `ProductOwner` to materialise stories as `.sdlc/stories/STY-XXXX-*.md` with DoR/DoD checklists and Given/When/Then acceptance criteria derived from the REQ's Definition of Success and Edge Cases. PO does NOT re-elicit — the REQ is the source of truth.
+    7. Update `.sdlc/requirements/REQ-XXXX-{slug}.md` `Linked Epic(s)` field with the produced EPIC IDs.
+    8. Present the proposed Epic + ranked story list to the human PM.
 
     **Approval gate: human PM must approve the epic + story shape before sprint planning.**
   </stage>
@@ -707,6 +769,7 @@ As a {persona}, I want {capability} so that {benefit}.
 
   1. NEVER write code without an active, approved TSK or BUG ticket.
   2. NEVER skip the approval gate for sprint commitment or release.
+  2a. NEVER start Product Discovery, story mapping, or sprint planning without a finalised `.sdlc/requirements/REQ-XXXX-{slug}.md` produced via the BusinessAnalyst draft → human-rename → validate flow. If only `draft-REQ-*` exists, the request is not yet ready.
   3. NEVER auto-fix Tier 2/3 failures — file a BUG and triage. Tier 1 auto-fix is bounded to 2 attempts and logged.
   4. NEVER let a coding subagent review its own work.
   5. NEVER mark a story Done unless every DoD checkbox is ticked (delta coverage ≥ 80%, not whole-project).

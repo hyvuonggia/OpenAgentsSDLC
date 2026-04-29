@@ -49,7 +49,7 @@ else
 fi
 
 BRANCH="${OPENCODE_BRANCH:-main}"
-REPO_URL="https://raw.githubusercontent.com/darrenhinde/OpenAgentsControl/${BRANCH}"
+REPO_URL="https://raw.githubusercontent.com/hyvuonggia/OpenAgentsSDLC/${BRANCH}"
 
 # CLI argument for custom install dir (overrides env var)
 CUSTOM_INSTALL_DIR=""
@@ -79,7 +79,7 @@ print_header() {
     echo -e "${CYAN}${BOLD}"
     echo "╔════════════════════════════════════════════════════════════════╗"
     echo "║                                                                ║"
-    echo "║           OpenAgents Control Updater v1.1.0                   ║"
+    echo "║              OpenSDLC Updater v0.7.1                          ║"
     echo "║                                                                ║"
     echo "╚════════════════════════════════════════════════════════════════╝"
     echo -e "${NC}"
@@ -242,7 +242,7 @@ update_all_components() {
         else
             failed=$((failed + 1))
         fi
-    done < <(find "$install_dir" -name "*.md" -type f -print0)
+    done < <(find "$install_dir" -name "*.md" -type f -not -path "*/node_modules/*" -print0)
 
     # Update TypeScript files
     while IFS= read -r -d '' file; do
@@ -260,7 +260,16 @@ update_all_components() {
         else
             failed=$((failed + 1))
         fi
-    done < <(find "$install_dir" -name "*.sh" -type f -print0)
+    done < <(find "$install_dir" -name "*.sh" -type f -not -path "*/node_modules/*" -print0)
+
+    # Update JSON config files
+    while IFS= read -r -d '' file; do
+        if update_component "$file" "$install_dir"; then
+            updated=$((updated + 1))
+        else
+            failed=$((failed + 1))
+        fi
+    done < <(find "$install_dir" -name "*.json" -type f -not -path "*/node_modules/*" -not -name "package-lock.json" -print0)
 
     print_info "Updated: $updated file(s), failed: $failed file(s)"
 }

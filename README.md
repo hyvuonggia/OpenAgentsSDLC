@@ -7,8 +7,8 @@
 **An enterprise SDLC orchestrator that runs a complete Scrum team of AI subagents — with markdown-based ticketing, sprint cadence, Definition of Ready / Definition of Done enforcement, and human approval at every commitment point.**
 
 🏢 **Enterprise SDLC** — Full Scrum lifecycle from backlog to release  
-👥 **19 Specialized Subagents** — PO, SM, Release Manager, Devs, QA, and more  
-📋 **Markdown Ticketing** — Epics, stories, tasks, defects, sprints, ADRs, releases under `.sdlc/`  
+👥 **20 Specialized Subagents** — BA, PO, SM, Release Manager, Devs, QA, and more  
+📋 **Markdown Ticketing** — Requirements, epics, stories, tasks, defects, sprints, ADRs, releases under `.sdlc/`  
 ✋ **Approval Gates** — Human sign-off at every commitment point  
 🔁 **DoR / DoD Enforcement** — Nothing enters a sprint unready; nothing ships incomplete  
 🔍 **Full Traceability** — Every code change traceable to a ticket with timestamped audit logs
@@ -60,6 +60,31 @@ curl -fsSL https://raw.githubusercontent.com/hyvuonggia/OpenAgentsSDLC/main/inst
 
 > The `developer` profile includes **OpenAgent** (general), **OpenCoder** (production dev), and **OpenSDLC** (enterprise Scrum) plus all 19 subagents.
 
+### Update
+
+The installer skips files that already exist. To pull the **latest** version of every installed agent, subagent, command, skill, and context, use the updater:
+
+**Auto-detect (project-local first, then global):**
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/hyvuonggia/OpenAgentsSDLC/main/update.sh | bash
+```
+
+**Update a project-local install:**
+
+```bash
+cd /path/to/your/project
+curl -fsSL https://raw.githubusercontent.com/hyvuonggia/OpenAgentsSDLC/main/update.sh | bash
+```
+
+**Update a global install:**
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/hyvuonggia/OpenAgentsSDLC/main/update.sh | bash -s -- --install-dir ~/.config/opencode
+```
+
+The updater overwrites every installed `.md`, `.ts`, `.sh`, and `.json` component in place with the latest version from the `main` branch (set `OPENCODE_BRANCH` to pull from another branch). Files that no longer exist on the remote are left untouched. Each file is backed up before replacement and restored automatically if the download fails.
+
 ### Start Using OpenSDLC
 
 ```bash
@@ -68,13 +93,14 @@ opencode --agent OpenSDLC
 ```
 
 **What happens:**
-1. **Discovery** — ContextScout loads your project standards
-2. **Product Discovery** — StoryMapper + ProductOwner create epics and stories with acceptance criteria
-3. **Sprint Planning** — ScrumMaster sizes the sprint to capacity, filters by DoR
-4. **You approve** the sprint commitment
-5. **Execution** — CoderAgent implements, TestEngineer tests, CodeReviewer reviews (separation of duties)
-6. **Validation** — ProductOwner accepts against the written criteria
-7. **Release** — ReleaseManager cuts the release with sign-offs and changelog
+1. **Requirement Intake** — BusinessAnalyst writes `.sdlc/requirements/draft-REQ-0001-{slug}.md` with clarifying questions. **You answer the questions inline in that file**, then rename it to `REQ-0001-{slug}.md` (drop the `draft-` prefix). BA validates and produces the Requirement Summary.
+2. **Discovery** — ContextScout loads your project standards
+3. **Product Discovery** — StoryMapper + ProductOwner create epics and stories from the finalised `REQ-XXXX.md` (no re-eliciting in chat)
+4. **Sprint Planning** — ScrumMaster sizes the sprint to capacity, filters by DoR
+5. **You approve** the sprint commitment
+6. **Execution** — CoderAgent implements, TestEngineer tests, CodeReviewer reviews (separation of duties)
+7. **Validation** — ProductOwner accepts against the written criteria
+8. **Release** — ReleaseManager cuts the release with sign-offs and changelog
 
 Every step is traceable. Every transition is logged. You approve before anything is committed.
 
@@ -82,15 +108,16 @@ Every step is traceable. Every transition is logged. You approve before anything
 
 ---
 
-## 👥 The Scrum Team — 19 Subagents
+## 👥 The Scrum Team — 20 Subagents
 
-OpenSDLC orchestrates 19 specialized subagents organized into four groups:
+OpenSDLC orchestrates 20 specialized subagents organized into four groups:
 
 ### Scrum Roles
 
 | Subagent | Role | What It Does |
 |----------|------|--------------|
-| **ProductOwner** | Owns *what* to build | Maintains ranked backlog, refines stories with Given/When/Then acceptance criteria, enforces DoR, accepts or rejects completed work |
+| **BusinessAnalyst** | First-touch on every new request | Drafts `.sdlc/requirements/draft-REQ-XXXX-{slug}.md` with clarifying questions for the human to answer in-file; validates the renamed `REQ-XXXX-{slug}.md` before any planning runs |
+| **ProductOwner** | Owns *what* to build | Maintains ranked backlog, refines stories from the finalised `REQ-XXXX.md`, writes Given/When/Then acceptance criteria, enforces DoR, accepts/rejects completed work |
 | **ScrumMaster** | Owns *how we work* | Runs ceremonies (planning, standup, review, retro), tracks velocity and burn-down, enforces DoR/DoD, surfaces blockers |
 | **ReleaseManager** | Owns *shipping* | Plans releases, manages semver + CHANGELOG.md, collects 4-way sign-offs (Engineering/QA/Security/Product), validates post-deploy |
 
@@ -137,6 +164,9 @@ OpenSDLC maintains all project state as markdown files under `.sdlc/`. Commit th
 │   ├── vision.md              # Product vision & North Star metric
 │   ├── roadmap.md             # Quarterly / release roadmap
 │   └── backlog.md             # Ordered product backlog
+├── requirements/
+│   ├── draft-REQ-XXXX-{slug}.md   # BA-drafted questionnaire awaiting human answers
+│   └── REQ-XXXX-{slug}.md         # Human-finalised requirement (single source of truth)
 ├── epics/
 │   └── EPIC-XXXX-{slug}.md   # Epic-level objectives
 ├── stories/
@@ -167,18 +197,20 @@ Every file includes an **Execution Log** — a timestamped append-only log of ev
                     │   Approve at every commitment point          │
                     └──────────────┬──────────────────────────────┘
                                    │
-       ┌───────────────────────────┼───────────────────────────┐
-       ▼                           ▼                           ▼
-  ┌─────────┐              ┌──────────────┐            ┌──────────────┐
-  │Discovery│──────────▶   │   Product    │──────────▶ │   Sprint     │
-  │         │              │  Discovery   │            │  Planning    │
-  │Context  │              │              │            │              │
-  │Scout    │              │StoryMapper   │            │ScrumMaster   │
-  │External │              │Arch.Analyzer │            │ProductOwner  │
-  │Scout    │              │Prioritizer   │            │capacity+DoR  │
-  └─────────┘              │ProductOwner  │            └──────┬───────┘
-                           └──────────────┘                   │
-                                                    ▼ APPROVAL GATE
+       ┌────────────┬──────────────┬──────────────┬──────────────┐
+       ▼            ▼              ▼              ▼              ▼
+  ┌──────────┐ ┌─────────┐  ┌──────────────┐  ┌──────────────┐
+  │Requirement│ │Discovery│  │   Product    │  │   Sprint     │
+  │  Intake   │ │         │  │  Discovery   │  │  Planning    │
+  │           │ │Context  │  │              │  │              │
+  │BusinessAna│ │Scout    │  │StoryMapper   │  │ScrumMaster   │
+  │ draft-REQ │ │External │  │Arch.Analyzer │  │ProductOwner  │
+  │ → REQ.md  │ │Scout    │  │Prioritizer   │  │capacity+DoR  │
+  │ (human    │ └─────────┘  │ProductOwner  │  └──────┬───────┘
+  │ renames)  │              │(reads REQ)   │         │
+  └─────┬─────┘              └──────────────┘         │
+        ▼ HUMAN ANSWERS IN FILE                       │
+                                              ▼ APPROVAL GATE
                                                               │
        ┌──────────────────────────────────────────────────────┘
        ▼
@@ -210,8 +242,9 @@ Every file includes an **Execution Log** — a timestamped append-only log of ev
 
 | # | Stage | What Happens | Approval Needed? |
 |---|-------|-------------|-----------------|
+| 0c | **Requirement Intake** | BusinessAnalyst drafts `draft-REQ-XXXX.md` with clarifying questions; you answer in-file and rename to `REQ-XXXX.md`; BA validates and writes the Requirement Summary | **In-file** — human answers + rename |
 | 0 | **Discovery** | ContextScout loads project standards, ExternalScout fetches library docs | No |
-| 1 | **Product Discovery** | StoryMapper breaks request into epics/stories, PrioritizationEngine ranks them, ProductOwner writes acceptance criteria | **Yes** — epic + story shape |
+| 1 | **Product Discovery** | StoryMapper / ArchitectureAnalyzer / PrioritizationEngine / ProductOwner read the finalised `REQ-XXXX.md` and produce epics/stories with acceptance criteria | **Yes** — epic + story shape |
 | 2 | **Sprint Planning** | ScrumMaster computes capacity, filters by DoR, proposes commitment | **Yes** — sprint commitment |
 | 3 | **Init Session** | Binds execution to approved sprint, TaskManager creates TSK tickets | No |
 | 4 | **Execute** | CoderAgent implements, BuildAgent validates, TestEngineer tests, CodeReviewer reviews, ProductOwner accepts | Per story |
@@ -246,16 +279,18 @@ opencode --agent OpenSDLC
 > "Create an order management system with payment processing"
 ```
 
-**1. Discovery** — ContextScout finds your tech stack (e.g., Next.js + TypeScript + PostgreSQL)
+**1. Requirement Intake** — BusinessAnalyst writes `.sdlc/requirements/draft-REQ-0001-order-management.md` with ~8 clarifying questions (personas, in/out scope, KPIs, constraints, NFRs, edge cases, success criteria). You answer them inline and rename the file to `REQ-0001-order-management.md`. BA validates and appends the Requirement Summary.
 
-**2. Product Discovery** — StoryMapper produces:
-- EPIC-0001: Order Management
+**2. Discovery** — ContextScout finds your tech stack (e.g., Next.js + TypeScript + PostgreSQL)
+
+**3. Product Discovery** — StoryMapper reads `REQ-0001` and produces:
+- EPIC-0001: Order Management (linked to REQ-0001)
   - STY-0001: Create order with line items
   - STY-0002: Payment processing integration
   - STY-0003: Order status tracking
   - STY-0004: Email notifications on status change
 
-Each story has Given/When/Then acceptance criteria and DoR/DoD checklists.
+Each story has Given/When/Then acceptance criteria derived from the REQ's Definition of Success.
 
 **3. Sprint Planning** — ScrumMaster proposes:
 ```

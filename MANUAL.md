@@ -93,24 +93,24 @@ OpenSDLC will:
 
 **Your job**: read `ADR-0001`, the seeded standards, and the CI YAML. Edit them if needed, then approve.
 
-### Step 3 — Requirement Elicitation (PO asks questions)
+### Step 3 — Requirement Intake (BA drafts REQ, you answer in-file)
 
-Before creating any stories, `ProductOwner` will **ask you at least 5 clarifying questions** about:
-- **Who** — target users / personas.
-- **What (scope)** — what's in, what's explicitly out.
-- **Why (value)** — business driver, KPI impact.
-- **How (constraints)** — tech stack, 3rd-party integrations, regulatory, data sensitivity.
-- **Non-functional** — performance, security, accessibility, i18n.
-- **Edge cases** — failure modes, concurrent users, data limits.
-- **Definition of success** — how you'll verify it works.
+Before any clarifying questions are asked in chat, `BusinessAnalyst` writes them to disk so you can answer asynchronously:
 
-Answer these questions. PO then summarises and asks you to confirm the refined understanding. Only after your confirmation does story creation begin.
+1. BA creates `.sdlc/requirements/draft-REQ-XXXX-{slug}.md` containing:
+   - Your raw request (verbatim)
+   - Detected context hints (stack, related personas, prior REQs)
+   - At least one question per category: **Who** (personas), **What in** (scope), **What out** (anti-scope), **Why** (value/KPI), **How** (constraints/integrations/regulatory), **NFRs** (perf/security/a11y/i18n), **Edge cases & failure modes**, **Definition of success**, plus any domain-specific clarifications.
+2. **Your job**: open the file, fill in each `**Answer:**` line, then **rename the file from `draft-REQ-XXXX-{slug}.md` to `REQ-XXXX-{slug}.md`** (drop the `draft-` prefix). Tell OpenSDLC you are done.
+3. BA re-reads the file:
+   - If any answer is blank or `TBD/TODO/?`, BA appends an `## Open Questions` block listing the gaps and stops. Fill them in and re-confirm.
+   - If all answers are present, BA appends a `## Requirement Summary` and sets `Status: Ready`. This finalised REQ is the single source of truth for everything downstream.
 
-> **Why?** A one-liner like "add SSO" is dangerously ambiguous. SAML or OIDC? Which IdPs? Self-serve provisioning? MFA enforcement? Elicitation prevents building the wrong thing.
+> **Why?** A one-liner like "add SSO" is dangerously ambiguous. SAML or OIDC? Which IdPs? Self-serve provisioning? MFA enforcement? Putting questions in a file (instead of a chat thread) makes the captured answers durable, version-controlled, and reviewable later.
 
 ### Step 4 — Product Discovery
 
-`StoryMapper` and `ProductOwner` produce `EPIC-XXXX` + `STY-XXXX` files with acceptance criteria. `PrioritizationEngine` ranks them.
+`StoryMapper` and `ProductOwner` read the finalised `REQ-XXXX.md` and produce `EPIC-XXXX` + `STY-XXXX` files. Each story links back to its `REQ-XXXX`. `PrioritizationEngine` ranks them. PO does NOT re-elicit — the REQ is the source.
 
 **Your job**: review the Epic shape and the ranked story list. Approve the proposed MVP slice.
 
@@ -170,9 +170,9 @@ This is the most important step. OpenSDLC will:
 
 **Your job**: read `legacy-map.md` and validate it. Correct any wrong assumptions before stories are written. **No code is changed in this step.**
 
-### Step 3 — Requirement Elicitation + Story Drafting (with Impact Analysis)
+### Step 3 — Requirement Intake + Story Drafting (with Impact Analysis)
 
-Just like Green Field, `ProductOwner` first asks you **at least 5 clarifying questions** about scope, personas, constraints, NFRs, and edge cases. After you confirm the refined summary, stories are created.
+Just like Green Field, the human-readable starting point is a `REQ-XXXX-{slug}.md` file. `BusinessAnalyst` drafts `.sdlc/requirements/draft-REQ-XXXX-{slug}.md` with clarifying questions; you answer them inline and rename the file to `REQ-XXXX-{slug}.md`; BA validates and produces the Requirement Summary. Stories are then created from the finalised REQ — not from a chat thread.
 
 **For brown-field, every candidate story must also have an Impact Analysis** before it can be committed to a sprint. `LegacyScout` produces `.sdlc/impact/IMP-{STY-ID}.md` with:
 
@@ -246,8 +246,8 @@ OpenSDLC pauses and asks for explicit approval at these moments:
 |------|-------|------------------------|
 | Mode confirmation | Stage -1 | Green Field vs Brown Field classification |
 | Bootstrap sign-off | Stage 0a | ADR-0001, seeded standards, CI scaffold |
-| Elicitation answers | Stage 1 | Answer PO's 5+ clarifying questions, confirm the Requirement Summary |
-| Epic + story shape | Stage 1 | The proposed Epic and ranked stories |
+| Requirement finalisation | Stage 0c | Answer every question in `draft-REQ-XXXX.md` and rename to `REQ-XXXX.md`. The rename + completed answers ARE the approval. |
+| Epic + story shape | Stage 1 | The proposed Epic and ranked stories (derived from the finalised REQ) |
 | Sprint commitment | Stage 2 | The sprint goal and committed stories |
 | Tier-2 failure triage | Stage 4/6 | A new `BUG-XXXX` and proposed fix plan |
 | Release sign-off | Stage 9 | Release notes, migration plan, rollback plan |
@@ -304,6 +304,8 @@ Reports land at `.sdlc/reconcile/sync-{YYYY-MM-DD}.md`.
 | `.sdlc/product/backlog.md` | Ordered product backlog |
 | `.sdlc/product/legacy-map.md` | Brown-field codebase map (LegacyScout) |
 | `.sdlc/product/mode.md` | Detected mode (Green / Brown) + rationale |
+| `.sdlc/requirements/draft-REQ-XXXX-*.md` | BA-drafted questionnaire awaiting human answers |
+| `.sdlc/requirements/REQ-XXXX-*.md` | Human-finalised requirement (single source of truth for planning) |
 | `.sdlc/epics/EPIC-XXXX-*.md` | Epic-level objectives |
 | `.sdlc/stories/STY-XXXX-*.md` | User stories with DoR/DoD |
 | `.sdlc/tasks/TSK-XXXX-*.md` | Atomic engineering tasks |
@@ -357,8 +359,9 @@ GREEN FIELD                          BROWN FIELD
 2. Confirm: Green Field              2. Confirm: Brown Field
 3. Approve: ADR-0001 + standards     3. Read: legacy-map.md
    + Sprint-1 CI                        (no code changes yet)
-4. Answer PO's 5+ questions          4. Answer PO's 5+ questions
-   Confirm: Requirement Summary         Confirm: Requirement Summary
+4. BA writes draft-REQ-XXXX.md       4. BA writes draft-REQ-XXXX.md
+   Answer questions in-file             Answer questions in-file
+   Rename → REQ-XXXX.md                 Rename → REQ-XXXX.md
 5. Approve: Epic + stories           5. Approve: Epic + stories
 6. Approve: Sprint commitment        6. Read each IMP-{STY}.md
 7. Watch execution                      Approve: Sprint commitment

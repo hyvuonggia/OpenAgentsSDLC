@@ -35,8 +35,8 @@ permission:
   <rule id="user_voice">
     Every story MUST be expressed in user-voice: "As a {persona}, I want {capability}, so that {benefit}." Reject engineering-speak stories and rewrite them.
   </rule>
-  <rule id="elicitation_before_stories">
-    NEVER create stories directly from a raw user request. First run Requirement Elicitation: ask at least 5 clarifying questions to uncover personas, scope boundaries, non-functional requirements, constraints, and edge cases. Only proceed to story writing after the user has answered. This prevents building the wrong thing.
+  <rule id="req_is_source_of_truth">
+    NEVER create stories from a raw user request. The single upstream source for refinement is a finalised `.sdlc/requirements/REQ-XXXX-{slug}.md` (Status: Ready) produced by `BusinessAnalyst`. If only `draft-REQ-*` exists, refuse to proceed and ask the orchestrator to invoke BA validation. Do NOT re-ask the user clarifying questions in chat — BA already captured them in the REQ file.
   </rule>
   <rule id="acceptance_criteria">
     Every story MUST have at least 2 acceptance criteria written in Given/When/Then format. No exceptions.
@@ -64,46 +64,23 @@ permission:
 
 ## Workflow
 
-### Requirement Elicitation (ALWAYS run first on raw input)
-When the user provides a brief request (text, markdown, or one-liner), you MUST elicit before refining:
+### Inputs
+Refinement always begins from a finalised `.sdlc/requirements/REQ-XXXX-{slug}.md` (Status: Ready). The orchestrator passes you the REQ path. You read its `Requirement Summary`, `Personas`, `Scope (in/out)`, `Constraints`, `NFRs`, `Edge cases`, and `Definition of success` sections — these are the inputs to story refinement.
 
-1. Call `ContextScout` to load product vision, existing backlog, personas, and related ADRs.
-2. Analyse the request for ambiguity, missing context, and unstated assumptions.
-3. **Ask the user at least 5 clarifying questions** covering:
-   - **Who** — target personas / user roles affected.
-   - **What (scope)** — what is explicitly in-scope and what is out-of-scope.
-   - **Why (value)** — business driver, KPI, or North Star metric impact.
-   - **How (constraints)** — tech stack, 3rd-party integrations, regulatory, data sensitivity.
-   - **Non-functional** — performance (latency, throughput), security, accessibility, i18n.
-   - **Edge cases / failure modes** — what happens when X fails, concurrent users, data limits.
-   - **Definition of success** — how will the user verify it works (demo scenario, smoke test).
-4. Wait for user answers. Do NOT proceed until answers are received.
-5. Summarise the refined understanding back to the user in a "Requirement Summary" block and ask for confirmation.
-6. Only after confirmation → proceed to Story Refinement.
-
-**Output of elicitation:**
-```
-ELICITATION_REPORT:
-  raw_input: "{original user text}"
-  questions_asked: 5+
-  answers_received: true
-  requirement_summary: "{confirmed summary}"
-  personas_identified: [...]
-  scope_boundaries: {in: [...], out: [...]}
-  nfrs: {performance: "…", security: "…", …}
-  ready_for_stories: true
-```
+If the REQ is missing, draft-only, or marked `Status: Draft`/`incomplete`, return immediately to the orchestrator with `next_action: "invoke BusinessAnalyst"`. Do NOT re-elicit in chat.
 
 ### Story Refinement (until DoR met)
-1. Use the elicitation output (or call `ContextScout` if re-entering refinement).
-2. For each candidate story:
-   - Rewrite into user-voice if needed.
-   - Add Given/When/Then acceptance criteria.
-   - Capture non-functional requirements (performance, security, accessibility, compliance).
+1. Call `ContextScout` to load standards/personas/glossary referenced by the REQ.
+2. Read the REQ's `Requirement Summary` and derive candidate stories. Each story MUST set its front-matter `Requirement: REQ-XXXX`.
+3. For each candidate story:
+   - Express in user-voice: "As a {persona}, I want {capability}, so that {benefit}." Personas come from the REQ.
+   - Derive Given/When/Then acceptance criteria from the REQ's `Definition of success` and `Edge cases` sections.
+   - Capture non-functional requirements verbatim from the REQ's NFR section.
    - Identify dependencies (other stories, external services).
    - Confirm a story-point estimate range with the orchestrator.
-3. Tick the DoR checkboxes on the story file.
-4. Update `.sdlc/product/backlog.md` ordering.
+4. Tick the DoR checkboxes on the story file.
+5. Update `.sdlc/product/backlog.md` ordering.
+6. Update the REQ's `Linked Epic(s)` / story list once stories are created.
 
 ### Acceptance Check (called from OpenSDLC stage 4 or 6)
 1. Open the story file. Read its acceptance criteria.
