@@ -78,6 +78,8 @@ opencode --agent OpenSDLC
 
 Every step is traceable. Every transition is logged. You approve before anything is committed.
 
+> 📖 **New here?** Read the **[OpenSDLC User Manual](MANUAL.md)** — a step-by-step guide for both **Green Field** (new project) and **Brown Field** (existing codebase) workflows, including approval gates, tiered failure handling, state reconciliation, and a one-page cheat sheet.
+
 ---
 
 ## 👥 The Scrum Team — 19 Subagents
@@ -355,6 +357,17 @@ A: OpenSDLC immediately creates a `BUG-XXXX.md` with steps to reproduce, expecte
 
 **Q: How does separation of duties work?**  
 A: CoderAgent writes code. CodeReviewer reviews it (never the same agent). TestEngineer writes tests. ProductOwner accepts. No agent can mark its own work as Done.
+
+**Q: How do I actually drive OpenSDLC day-to-day on a new vs. existing project?**  
+A: See the **[OpenSDLC User Manual](MANUAL.md)** — full Green Field and Brown Field workflows, approval gates, tiered failure handling, and reconciliation.
+
+---
+
+## 📚 Documentation
+
+- **[MANUAL.md](MANUAL.md)** — User manual: Green Field & Brown Field workflows, daily ops, approval gates, failure tiers, RepoSync, FAQ
+- **[.opencode/agent/core/opensdlc.md](.opencode/agent/core/opensdlc.md)** — The OpenSDLC agent definition (rules, templates, workflow stages)
+- **[docs/](docs/)** — Deep dives, agent catalogue, planning notes, contributing guides
 
 ---
 

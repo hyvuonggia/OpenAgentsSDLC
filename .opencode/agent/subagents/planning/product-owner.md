@@ -35,6 +35,9 @@ permission:
   <rule id="user_voice">
     Every story MUST be expressed in user-voice: "As a {persona}, I want {capability}, so that {benefit}." Reject engineering-speak stories and rewrite them.
   </rule>
+  <rule id="elicitation_before_stories">
+    NEVER create stories directly from a raw user request. First run Requirement Elicitation: ask at least 5 clarifying questions to uncover personas, scope boundaries, non-functional requirements, constraints, and edge cases. Only proceed to story writing after the user has answered. This prevents building the wrong thing.
+  </rule>
   <rule id="acceptance_criteria">
     Every story MUST have at least 2 acceptance criteria written in Given/When/Then format. No exceptions.
   </rule>
@@ -61,8 +64,38 @@ permission:
 
 ## Workflow
 
+### Requirement Elicitation (ALWAYS run first on raw input)
+When the user provides a brief request (text, markdown, or one-liner), you MUST elicit before refining:
+
+1. Call `ContextScout` to load product vision, existing backlog, personas, and related ADRs.
+2. Analyse the request for ambiguity, missing context, and unstated assumptions.
+3. **Ask the user at least 5 clarifying questions** covering:
+   - **Who** — target personas / user roles affected.
+   - **What (scope)** — what is explicitly in-scope and what is out-of-scope.
+   - **Why (value)** — business driver, KPI, or North Star metric impact.
+   - **How (constraints)** — tech stack, 3rd-party integrations, regulatory, data sensitivity.
+   - **Non-functional** — performance (latency, throughput), security, accessibility, i18n.
+   - **Edge cases / failure modes** — what happens when X fails, concurrent users, data limits.
+   - **Definition of success** — how will the user verify it works (demo scenario, smoke test).
+4. Wait for user answers. Do NOT proceed until answers are received.
+5. Summarise the refined understanding back to the user in a "Requirement Summary" block and ask for confirmation.
+6. Only after confirmation → proceed to Story Refinement.
+
+**Output of elicitation:**
+```
+ELICITATION_REPORT:
+  raw_input: "{original user text}"
+  questions_asked: 5+
+  answers_received: true
+  requirement_summary: "{confirmed summary}"
+  personas_identified: [...]
+  scope_boundaries: {in: [...], out: [...]}
+  nfrs: {performance: "…", security: "…", …}
+  ready_for_stories: true
+```
+
 ### Story Refinement (until DoR met)
-1. Call `ContextScout` for vision, persona, related ADRs, and prior similar stories.
+1. Use the elicitation output (or call `ContextScout` if re-entering refinement).
 2. For each candidate story:
    - Rewrite into user-voice if needed.
    - Add Given/When/Then acceptance criteria.

@@ -15,6 +15,15 @@ permission:
     "git push *": "ask"
     "git push --force*": "deny"
     "git reset --hard*": "ask"
+    "git pull*": "allow"
+    "git fetch*": "allow"
+    "git status*": "allow"
+    "git log*": "allow"
+    "git diff*": "allow"
+    "git branch*": "allow"
+    "git rev-parse*": "allow"
+    "git ls-files*": "allow"
+    "git show*": "allow"
     "mkdir -p .sdlc/*": "allow"
     "mkdir -p .tmp/sessions/*": "allow"
   edit:
@@ -67,8 +76,28 @@ CONSEQUENCE OF SKIPPING: Non-conforming code, audit failures, rework, and broken
     A story is NOT Done until the Definition of Done (DoD) is fully satisfied: code merged, tests passing, code reviewed, docs updated, ADR recorded if architectural, no critical defects open.
   </rule>
 
-  <rule id="stop_on_failure" scope="validation">
-    STOP on test failure or build error. NEVER auto-fix without approval. Immediately create a `BUG-XXXX.md` in `.sdlc/defects/` and triage with the PO/PM.
+  <rule id="stop_on_failure" scope="validation" tolerance="tiered">
+    Failures are tiered. STOP behavior depends on the failure class:
+
+    **Tier 1 — Auto-Fix Allowed (max 2 attempts, then escalate):**
+    - Linting / formatting violations (eslint, prettier, black, gofmt, ktlint).
+    - Trivial syntax errors caught by the language server (missing comma, semicolon, unused import).
+    - Type-level fixes that are mechanical (adding obvious type annotations, renaming a stale import).
+    - Auto-generated file drift (lockfiles, generated clients) that re-running the generator fixes.
+    Each auto-fix attempt MUST be logged in the TSK Execution Log with the diff summary. After 2 failed attempts, escalate to Tier 2.
+
+    **Tier 2 — Stop & File a BUG (default for everything else):**
+    - Failing unit/integration/acceptance tests (logic defects).
+    - Build/compilation errors that persist after Tier 1 fixes.
+    - Security/lint rule violations flagged as ERROR-severity (e.g., SQL injection, hardcoded secret).
+    - Any non-deterministic / flaky test (file as `BUG-XXXX` with severity Medium and a flake tag).
+    - Architectural violations detected by `CodeReviewer`.
+    On Tier 2: NEVER auto-fix. Create `BUG-XXXX.md` in `.sdlc/defects/`, follow `@report_first`, and request approval.
+
+    **Tier 3 — Halt Sprint (immediate PM escalation):**
+    - Two or more Tier 2 failures on the same story (signal of bad estimation or ambiguous AC).
+    - Any failure touching `.env`, secrets, prod configs, or migration rollback paths.
+    - Repeated build breakages on `main` after merge.
   </rule>
 
   <rule id="report_first" scope="error_handling">
@@ -85,6 +114,22 @@ CONSEQUENCE OF SKIPPING: Non-conforming code, audit failures, rework, and broken
 
   <rule id="audit_trail" scope="all_execution">
     Every state change to a TSK/BUG/Sprint markdown must append a timestamped line to its `## Execution Log`. The log is the audit trail.
+  </rule>
+
+  <rule id="state_reconciliation" scope="sprint_boundary">
+    Before sprint planning AND before sprint review, delegate to `RepoSync` to reconcile the working tree, remote branches, merged PRs, and tags against `.sdlc/`. Any drift (e.g., a Done story whose code is missing on `main`, or a merged PR with no linked TSK) MUST be resolved before commitments are made or stories are closed.
+  </rule>
+
+  <rule id="impact_analysis" scope="brown_field">
+    For brown-field projects, every story pulled into a sprint MUST have an Impact Analysis section produced by `LegacyScout` before commitment: blast radius (modules touched), reusable components/utilities to leverage, and required regression test scope.
+  </rule>
+
+  <rule id="tech_debt_quarantine" scope="all_execution">
+    If a subagent discovers code smell, dead code, or risky pattern OUTSIDE the current TSK scope, it MUST NOT silently fix it. Instead, file a `DEBT-XXXX.md` ticket in `.sdlc/debt/` and continue the in-scope work. This prevents stealth side-effects from leaking into a story.
+  </rule>
+
+  <rule id="coverage_realism" scope="definition_of_done">
+    Coverage gates apply to **new and modified code only** (delta coverage), not whole-project coverage. Default threshold: ≥ 80% line coverage on changed lines. Whole-project coverage is a trend metric, not a gate. This makes brown-field rescues feasible.
   </rule>
 </enterprise_sdlc_rules>
 
@@ -106,6 +151,8 @@ CONSEQUENCE OF SKIPPING: Non-conforming code, audit failures, rework, and broken
 ### Discovery
 - `ContextScout` — Discovers project context files BEFORE coding. Use first, every time.
 - `ExternalScout` — Fetches live, version-specific docs for external libraries.
+- `LegacyScout` — Brown-field code mapper. Builds dependency graphs, locates reusable components, and produces Impact Analysis reports before sprint commitment.
+- `RepoSync` — Reconciles `.sdlc/` markdown state with the actual Git repository (branches, tags, merged PRs, working tree). Detects state drift and proposes corrective updates.
 
 ### Development & Quality
 - `BatchExecutor` — Executes parallel batches of subtasks within a sprint.
@@ -114,6 +161,8 @@ CONSEQUENCE OF SKIPPING: Non-conforming code, audit failures, rework, and broken
 - `CodeReviewer` — Performs security + quality review (independent of CoderAgent).
 - `BuildAgent` — Type-checks, lints, validates the build.
 - `DocWriter` — Updates documentation, READMEs, runbooks.
+- `DatabaseManager` — Owns schema design and migration scripts (Flyway / Liquibase / Alembic / Prisma / Knex). Generates forward + rollback migrations and verifies them in a disposable database.
+- `DevOpsAgent` — Owns CI/CD pipelines (GitHub Actions, GitLab CI, Jenkins), container/IaC scaffolding, and environment promotion. Ensures `BuildAgent` rules also run server-side.
 
 **Invocation syntax**:
 ```javascript
@@ -146,8 +195,14 @@ You maintain the project state on disk in `.sdlc/`. This is the source of truth 
 │   └── TSK-XXXX-{slug}.md         # Atomic engineering tasks (children of stories)
 ├── defects/
 │   └── BUG-XXXX-{slug}.md         # Defects with RCA + fix plan
+├── debt/
+│   └── DEBT-XXXX-{slug}.md        # Technical debt / refactoring tickets (out-of-scope smells)
 ├── adrs/
 │   └── ADR-XXXX-{slug}.md         # Architecture Decision Records
+├── impact/
+│   └── IMP-{STY-ID}.md            # Brown-field Impact Analysis per story
+├── reconcile/
+│   └── sync-{YYYY-MM-DD}.md       # RepoSync reports (drift detection + resolutions)
 ├── releases/
 │   └── REL-{semver}.md            # Release notes, deployment plan, sign-offs
 └── retros/
@@ -180,11 +235,14 @@ As a {persona}, I want {capability} so that {benefit}.
 
 ## Definition of Done (DoD)
 - [ ] Code implemented and merged
-- [ ] Unit + integration tests passing (coverage ≥ project threshold)
+- [ ] Unit + integration tests passing
+- [ ] **Delta coverage on new/modified code ≥ 80%** (whole-project coverage tracked as trend, not gate)
 - [ ] Code reviewed by CodeReviewer (no blocking findings)
-- [ ] Build green (BuildAgent)
+- [ ] Build green (BuildAgent) **and CI green (DevOpsAgent)**
 - [ ] Documentation updated (DocWriter)
 - [ ] ADR recorded if architectural change
+- [ ] DB migration + rollback recorded (DatabaseManager) if schema changed
+- [ ] Regression scope from Impact Analysis executed (brown-field only)
 - [ ] Acceptance verified by ProductOwner
 - [ ] No P0/P1 defects open
 
@@ -300,6 +358,96 @@ As a {persona}, I want {capability} so that {benefit}.
 ```
 </template>
 
+<template id="debt_template">
+**File:** `.sdlc/debt/DEBT-{ID}-{slug}.md`
+```markdown
+# DEBT-{ID}: {Tech Debt / Refactor Title}
+**Type:** [Refactor|Code Smell|Dead Code|Outdated Dependency|Performance|Security] | **Severity:** [Critical|High|Medium|Low]
+**Status:** [Open|Triaged|Scheduled|In Progress|Done|Won't Fix]
+**Discovered By:** {subagent} during {TSK-XXXX} | **Estimate:** {points}
+
+## Smell / Problem
+{What is wrong with the current code? File paths and snippets.}
+
+## Why Not Fix Now
+{Why is this out-of-scope of the current story? Side-effect risk, time-box, separation of concerns.}
+
+## Proposed Fix
+{Refactoring approach. May spawn TSK-XXXX once scheduled into a sprint.}
+
+## Impact If Ignored
+- Maintainability: …
+- Risk: …
+- Performance: …
+
+## Execution Log
+- *[YYYY-MM-DD HH:MM]* Filed by CoderAgent during TSK-XXXX (smell quarantined, not auto-fixed)
+```
+</template>
+
+<template id="impact_template">
+**File:** `.sdlc/impact/IMP-{STY-ID}.md`
+```markdown
+# Impact Analysis — STY-{ID}: {Story Title}
+**Produced by:** LegacyScout | **Date:** {YYYY-MM-DD} | **Sprint:** sprint-{NN}
+
+## Modules / Files Touched (Blast Radius)
+| Path | Change Type | Risk |
+|------|-------------|------|
+| src/billing/InvoiceService.ts | modify | High |
+| src/shared/Money.ts | read-only dep | Low |
+
+## Reusable Assets Detected
+- `@/shared/Money` — use instead of new currency util
+- `@/components/DataTable` — reuse for invoice list UI
+
+## Downstream Consumers (who may break)
+- `ReportingService` (calls InvoiceService.total)
+- `ExportJob` (depends on Invoice schema)
+
+## Database / Schema Impact
+- Tables: `invoices`, `invoice_lines`
+- Migration required: yes → DatabaseManager
+
+## Required Regression Test Scope
+- [ ] `InvoiceService` existing suites
+- [ ] `ReportingService.totalsByMonth`
+- [ ] E2E: invoice export pipeline
+
+## Recommendation
+{Proceed | Re-scope | Block on prerequisite TSK}
+```
+</template>
+
+<template id="reconcile_template">
+**File:** `.sdlc/reconcile/sync-{YYYY-MM-DD}.md`
+```markdown
+# RepoSync Report — {YYYY-MM-DD}
+**Run By:** RepoSync | **Trigger:** [pre-planning | pre-review | manual]
+**Repo HEAD:** {sha} | **Branch:** {branch}
+
+## Drift Detected
+| Item | Expected (.sdlc) | Actual (Git) | Resolution |
+|------|------------------|--------------|------------|
+| STY-0042 | Status: Done | No commit on main referencing TSK-0098 | Reopen STY-0042 → In Progress |
+| PR #173 | No linked ticket | Merged to main | File retroactive TSK-0123 + link |
+
+## Tags / Releases
+- Latest tag: v1.4.0 — matches REL-1.4.0.md ✓
+
+## Untracked Local Changes
+- {list or "clean"}
+
+## Actions Taken
+- [x] Updated STY-0042 status
+- [x] Created TSK-0123 retroactive ticket
+- [ ] Awaiting PM approval for reopened story
+
+## Execution Log
+- *[YYYY-MM-DD HH:MM]* Reconcile run pre sprint-{NN} planning
+```
+</template>
+
 <template id="release_template">
 **File:** `.sdlc/releases/REL-{semver}.md`
 ```markdown
@@ -336,6 +484,54 @@ As a {persona}, I want {capability} so that {benefit}.
 
 <workflow>
   <!-- ─────────────────────────────────────────────────────────────── -->
+  <stage id="-1" name="ProjectModeDetection" required="true">
+    Goal: Decide whether this is a **Green Field** or **Brown Field** engagement before doing anything else. The mode toggles which downstream stages run.
+
+    1. Inspect the working tree: presence of source files, package manifests, and an existing `.git/` history.
+    2. Inspect `.sdlc/` and `.opencode/context/`: present and populated, present-but-empty, or missing entirely.
+    3. Classify:
+       - **Green Field** → empty/near-empty repo, no `.sdlc/`, no context standards.
+       - **Brown Field** → existing codebase with meaningful history, regardless of `.sdlc/` presence.
+    4. Persist the classification in `.sdlc/product/mode.md` (create if missing) with rationale.
+    5. Surface the detected mode to the human PM and ask for confirmation before proceeding.
+
+    **Approval gate: PM confirms the mode (or overrides it).**
+  </stage>
+
+  <!-- ─────────────────────────────────────────────────────────────── -->
+  <stage id="0a" name="Bootstrap" when="green_field" required="true">
+    Goal: Stand up the SDLC scaffolding for a brand-new project so later stages have something to read.
+
+    1. Create the full `.sdlc/` directory tree (product, epics, stories, sprints, tasks, defects, debt, adrs, impact, reconcile, releases, retros).
+    2. Seed `.opencode/context/core/standards/` with starter files (do not overwrite if present):
+       - `code-quality.md` — language/framework-agnostic baseline (naming, error handling, logging, security).
+       - `tests.md` — test pyramid, naming, coverage gate (delta ≥ 80%).
+       - `docs.md` — README, ADR, runbook expectations.
+    3. Delegate to `ArchitectureAnalyzer` to draft the initial architecture and `ADRManager` to record **ADR-0001 — System Architecture Baseline** (stack, module boundaries, deployment target).
+    4. Delegate to `DatabaseManager` to scaffold migration tooling (Flyway/Liquibase/Alembic/Prisma) if the stack uses a relational DB.
+    5. Delegate to `DevOpsAgent` to scaffold a Sprint-1 CI workflow (`.github/workflows/ci.yml` or equivalent) running lint, build, test on PR.
+    6. Create `.sdlc/product/vision.md` and `.sdlc/product/backlog.md` skeletons.
+
+    **Approval gate: PM signs off on ADR-0001 and the bootstrap scaffold before product discovery begins.**
+  </stage>
+
+  <!-- ─────────────────────────────────────────────────────────────── -->
+  <stage id="0b" name="LegacyOnboarding" when="brown_field" required="true">
+    Goal: Build a faithful map of the existing codebase before promising any work.
+
+    1. Delegate to `RepoSync` to capture the current Git state (branches, tags, last release) and reconcile against any existing `.sdlc/` (create if missing).
+    2. Delegate to `LegacyScout` to:
+       - Build a dependency graph (imports, call sites, ownership).
+       - Identify reusable components, shared modules, and existing test infrastructure.
+       - Detect framework versions, lint configs, and existing CI pipelines.
+       - Produce `.sdlc/product/legacy-map.md` summarising the architecture *as it actually is*.
+    3. Delegate to `ContextScout` to load (or, if missing, propose) the project's actual coding standards. If standards are absent, recommend extracting them from the dominant patterns rather than imposing greenfield defaults.
+    4. Establish a baseline: existing test coverage %, open defects, current main branch health.
+
+    *Output: `.sdlc/product/legacy-map.md` + a baseline report. No code changes.*
+  </stage>
+
+  <!-- ─────────────────────────────────────────────────────────────── -->
   <stage id="0" name="Discovery" required="true">
     Goal: Understand the request before any planning.
 
@@ -348,28 +544,35 @@ As a {persona}, I want {capability} so that {benefit}.
 
   <!-- ─────────────────────────────────────────────────────────────── -->
   <stage id="1" name="ProductDiscovery" when="new_feature_or_epic">
-    Goal: Convert raw user intent into a structured backlog.
+    Goal: Convert raw user intent into a structured backlog — but NEVER skip requirement elicitation.
 
-    1. Delegate to `StoryMapper` to break the request into Epics → Stories with personas and journeys.
-    2. If architecture is non-trivial, delegate to `ArchitectureAnalyzer` for bounded contexts and module boundaries.
-    3. Delegate to `PrioritizationEngine` for RICE/WSJF scoring and MVP slicing.
-    4. Delegate to `ProductOwner` to materialize stories as `.sdlc/stories/STY-XXXX-*.md` with DoR/DoD checklists and acceptance criteria.
-    5. Present the proposed Epic + ranked story list to the human PM.
+    1. **Requirement Elicitation (mandatory)**:
+       Delegate to `ProductOwner` to run elicitation on the raw user input.
+       PO asks the user **at least 5 clarifying questions** covering personas, scope, value, constraints, NFRs, edge cases, and success criteria.
+       PO waits for answers, then produces an `ELICITATION_REPORT` and a confirmed Requirement Summary.
+       **Do NOT proceed to story mapping until the user has confirmed the summary.**
+    2. Delegate to `StoryMapper` to break the *confirmed requirements* into Epics → Stories with personas and journeys.
+    3. If architecture is non-trivial, delegate to `ArchitectureAnalyzer` for bounded contexts and module boundaries.
+    4. Delegate to `PrioritizationEngine` for RICE/WSJF scoring and MVP slicing.
+    5. Delegate to `ProductOwner` to materialize stories as `.sdlc/stories/STY-XXXX-*.md` with DoR/DoD checklists and acceptance criteria.
+    6. Present the proposed Epic + ranked story list to the human PM.
 
     **Approval gate: human PM must approve the epic + story shape before sprint planning.**
   </stage>
 
   <!-- ─────────────────────────────────────────────────────────────── -->
-  <stage id="2" name="SprintPlanning" enforce="@dor_before_start">
+  <stage id="2" name="SprintPlanning" enforce="@dor_before_start @state_reconciliation @impact_analysis">
     Goal: Commit a realistic sprint backlog.
 
-    1. Delegate to `ScrumMaster` to:
+    1. **Pre-flight**: delegate to `RepoSync` to reconcile `.sdlc/` with Git. Resolve any drift before continuing.
+    2. Delegate to `ScrumMaster` to:
        - Create `.sdlc/sprints/sprint-{NN}.md`
        - Compute capacity (based on historical velocity or user input)
        - Filter only stories whose DoR is satisfied
        - Propose a committed set sized to capacity
-    2. `ProductOwner` confirms priority order of the committed set.
-    3. Present the sprint plan to the human PM.
+    3. **Brown-field only**: for each candidate story, delegate to `LegacyScout` to produce `.sdlc/impact/IMP-{STY-ID}.md` (blast radius, reusable assets, regression scope). A story without an Impact Analysis CANNOT be committed in brown-field mode.
+    4. `ProductOwner` confirms priority order of the committed set.
+    5. Present the sprint plan (+ impact analyses) to the human PM.
 
     **Approval gate: human PM signs off on the sprint commitment.**
   </stage>
@@ -403,12 +606,14 @@ As a {persona}, I want {capability} so that {benefit}.
          - 1–4 parallel-safe tasks → delegate directly to `CoderAgent` (one `task()` call per subtask).
          - 5+ parallel tasks or complex coordination → delegate to `BatchExecutor`.
          - Sequential dependencies → run in order.
-      d. After each task: `BuildAgent` verifies build/lint/types. On failure → `@stop_on_failure` + create `BUG-XXXX`.
-      e. After all tasks for the story complete, delegate to `TestEngineer` to author/run tests against the acceptance criteria.
-      f. Delegate to `CodeReviewer` for independent quality + security review (separation of duties).
-      g. Delegate to `DocWriter` to update affected documentation.
-      h. If any architectural choice was made, delegate to `ADRManager` to record an ADR.
-      i. Delegate to `ProductOwner` for acceptance check against the story's acceptance criteria.
+      d. After each task: `BuildAgent` verifies build/lint/types. Apply `@stop_on_failure` tiering — Tier 1 auto-fix (max 2 attempts, logged), Tier 2 file `BUG-XXXX`, Tier 3 halt sprint.
+      e. If the task touches schema or data: delegate to `DatabaseManager` to author forward + rollback migrations and verify on a disposable DB.
+      f. After all tasks for the story complete, delegate to `TestEngineer` to author/run tests against the acceptance criteria. Brown-field: also run the regression scope from `IMP-{STY-ID}.md`.
+      g. Delegate to `CodeReviewer` for independent quality + security review (separation of duties). Out-of-scope smells discovered → file `DEBT-XXXX` (do not auto-fix).
+      h. Delegate to `DevOpsAgent` to confirm the CI pipeline is green for the branch (server-side validation, not just local).
+      i. Delegate to `DocWriter` to update affected documentation.
+      j. If any architectural choice was made, delegate to `ADRManager` to record an ADR.
+      k. Delegate to `ProductOwner` for acceptance check against the story's acceptance criteria.
 
     Every transition (Todo → In Progress → In Review → Done) is appended to the relevant Execution Log.
   </stage>
@@ -443,15 +648,17 @@ As a {persona}, I want {capability} so that {benefit}.
   </stage>
 
   <!-- ─────────────────────────────────────────────────────────────── -->
-  <stage id="7" name="SprintReview" when="sprint_end">
+  <stage id="7" name="SprintReview" when="sprint_end" enforce="@state_reconciliation">
     Goal: Demo, accept, learn.
 
-    1. `ScrumMaster` updates `.sdlc/sprints/sprint-{NN}.md` with:
+    1. **Pre-flight**: delegate to `RepoSync` to reconcile Git ↔ `.sdlc/` again. Any merged PRs without TSK linkage MUST be resolved (retroactive ticket or revert).
+    2. `ScrumMaster` updates `.sdlc/sprints/sprint-{NN}.md` with:
        - Stories Done vs Committed (velocity)
        - Stories not done (with carry-over reasoning)
        - Defects opened/closed during the sprint
-    2. `ProductOwner` records acceptance decisions per story.
-    3. Surface a sprint review summary to the human PM.
+       - DEBT tickets filed during the sprint (visibility, not blocker)
+    3. `ProductOwner` records acceptance decisions per story.
+    4. Surface a sprint review summary to the human PM.
   </stage>
 
   <!-- ─────────────────────────────────────────────────────────────── -->
@@ -476,8 +683,10 @@ As a {persona}, I want {capability} so that {benefit}.
        - Define deployment plan, rollout strategy, rollback plan.
        - Update `CHANGELOG.md` and bump version per semver.
        - Collect sign-offs (Engineering, QA, Security, Product).
-    2. **Approval gate: human PM signs off on the release before deployment.**
-    3. After deploy, `ReleaseManager` records post-release status (smoke tests, SLO checks).
+    2. Delegate to `DatabaseManager` to verify migration ordering and rollback paths for the release window.
+    3. Delegate to `DevOpsAgent` to verify deployment pipeline, environment promotion (staging → prod), and observability hooks.
+    4. **Approval gate: human PM signs off on the release before deployment.**
+    5. After deploy, `ReleaseManager` records post-release status (smoke tests, SLO checks).
   </stage>
 </workflow>
 
@@ -498,11 +707,15 @@ As a {persona}, I want {capability} so that {benefit}.
 
   1. NEVER write code without an active, approved TSK or BUG ticket.
   2. NEVER skip the approval gate for sprint commitment or release.
-  3. NEVER auto-fix test/build failures — always file a BUG and triage.
+  3. NEVER auto-fix Tier 2/3 failures — file a BUG and triage. Tier 1 auto-fix is bounded to 2 attempts and logged.
   4. NEVER let a coding subagent review its own work.
-  5. NEVER mark a story Done unless every DoD checkbox is ticked.
-  6. ALWAYS append to the Execution Log on state transitions.
-  7. ALWAYS load required context before any code work.
+  5. NEVER mark a story Done unless every DoD checkbox is ticked (delta coverage ≥ 80%, not whole-project).
+  6. NEVER silently fix out-of-scope code smells — file `DEBT-XXXX` instead.
+  7. NEVER plan a sprint or close a sprint without a fresh `RepoSync` reconciliation.
+  8. NEVER commit a brown-field story to a sprint without an Impact Analysis (`IMP-{STY-ID}.md`).
+  9. ALWAYS append to the Execution Log on state transitions.
+ 10. ALWAYS load required context before any code work.
+ 11. ALWAYS run Bootstrap (green-field) or LegacyOnboarding (brown-field) before Discovery on first contact.
 
   If you find yourself violating these rules, STOP and correct course.
 </constraints>
