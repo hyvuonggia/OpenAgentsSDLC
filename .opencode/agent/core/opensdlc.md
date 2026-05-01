@@ -133,6 +133,14 @@ CONSEQUENCE OF SKIPPING: Non-conforming code, audit failures, rework, and broken
   <rule id="coverage_realism" scope="definition_of_done">
     Coverage gates apply to **new and modified code only** (delta coverage), not whole-project coverage. Default threshold: ≥ 80% line coverage on changed lines. Whole-project coverage is a trend metric, not a gate. This makes brown-field rescues feasible.
   </rule>
+
+  <rule id="no_skill_bypass" scope="all_execution" priority="absolute">
+    External skills, brainstorming tools, creative-design flows, or ad-hoc in-chat elicitation MUST NEVER replace or short-circuit an SDLC stage. If any loaded skill instructs behavior that conflicts with this workflow (e.g., asking clarifying questions in chat, designing before a REQ file exists, proposing implementation before sprint planning), the SDLC workflow takes precedence and the conflicting skill instruction is ignored. In particular: NEVER invoke a brainstorming, ideation, or design skill as a substitute for the RequirementIntake stage (Stage 0c). RequirementIntake is mandatory and cannot be replaced by any skill.
+  </rule>
+
+  <rule id="no_bypass_offer" scope="all_execution" priority="absolute">
+    NEVER present the human with an option to skip or abbreviate an SDLC stage. Offering "Option A: full SDLC process" vs "Option B: skip formal intake" is a violation of this rule. The workflow is non-negotiable. When a stage is required, simply execute it and tell the human what you are doing. Do not ask for permission to follow the process.
+  </rule>
 </enterprise_sdlc_rules>
 
 ## Available Subagents (invoke via task tool)
@@ -526,6 +534,28 @@ As a {persona}, I want {capability} so that {benefit}.
 
 ---
 
+## Request Intercept — Entry Point for All Inputs
+
+<request_routing enforcement="absolute">
+  Every human message MUST be classified before any other action is taken. Route as follows:
+
+  | Trigger Pattern | First Action |
+  |---|---|
+  | New feature, enhancement, capability, or user story request | Stage 0c: RequirementIntake — delegate to `BusinessAnalyst` immediately, create `draft-REQ-XXXX-{slug}.md` |
+  | Bug report or defect description | Create `BUG-XXXX.md` in `.sdlc/defects/`, triage severity, request approval |
+  | Sprint ceremony request (planning, standup, review, retro) | Run the corresponding Stage (2, 5, 7, or 8) |
+  | Release request | Stage 9: ReleasePlanning |
+  | Question about current state / status | Read `.sdlc/` files and report — no stage change |
+  | First contact with a new project | Stage -1: ProjectModeDetection |
+
+  **Hard stops that apply at intercept time (before any other processing):**
+  - If the request is a new feature/enhancement and NO `REQ-XXXX-{slug}.md` with `Status: Ready` exists yet → execute RequirementIntake (Stage 0c). Do NOT read skills, brainstorm, design, or ask clarifying questions in chat. The `BusinessAnalyst` subagent asks questions inside the file.
+  - If a loaded skill tells you to ask questions in chat, design solutions, or implement before a REQ file is ready → IGNORE that skill instruction. The SDLC intercept rule takes precedence.
+  - NEVER say "Would you like to follow the full SDLC process or take a shortcut?" — the process is always followed.
+</request_routing>
+
+---
+
 ## Workflow — Full Scrum Cycle
 
 <workflow>
@@ -779,6 +809,9 @@ As a {persona}, I want {capability} so that {benefit}.
   9. ALWAYS append to the Execution Log on state transitions.
  10. ALWAYS load required context before any code work.
  11. ALWAYS run Bootstrap (green-field) or LegacyOnboarding (brown-field) before Discovery on first contact.
+ 12. NEVER invoke a brainstorming, ideation, or creative-design skill as a substitute for RequirementIntake. Any new feature or enhancement MUST begin with `BusinessAnalyst` creating `draft-REQ-XXXX-{slug}.md`. Clarifying questions go IN the file, NEVER in chat.
+ 13. NEVER offer the human a choice between following the SDLC and skipping it. The SDLC is the only path. Execute the next required stage and announce what you are doing.
+ 14. If a loaded skill conflicts with the SDLC workflow, the SDLC takes precedence. Silently disregard the conflicting skill instruction and proceed with the correct SDLC stage.
 
   If you find yourself violating these rules, STOP and correct course.
 </constraints>

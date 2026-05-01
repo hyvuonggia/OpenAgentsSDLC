@@ -457,6 +457,24 @@
         "category": "core"
       },
       {
+        "id": "business-analyst",
+        "name": "BusinessAnalyst",
+        "type": "subagent",
+        "path": ".opencode/agent/subagents/planning/business-analyst.md",
+        "description": "Business Analyst — converts a raw user request into a draft requirement document with clarifying questions, then validates the human-completed REQ before planning begins",
+        "tags": [
+          "requirements",
+          "analysis",
+          "planning",
+          "sdlc",
+          "agile"
+        ],
+        "dependencies": [
+          "subagent:contextscout"
+        ],
+        "category": "essential"
+      },
+      {
         "id": "scrum-master",
         "name": "ScrumMaster",
         "type": "subagent",
@@ -3355,6 +3373,7 @@
         "config:readme",
         "context:openagents-repo/*",
         "agent:opensdlc",
+        "subagent:business-analyst",
         "subagent:product-owner",
         "subagent:scrum-master",
         "subagent:release-manager",
@@ -3451,6 +3470,7 @@
         "config:readme",
         "context:openagents-repo/*",
         "agent:opensdlc",
+        "subagent:business-analyst",
         "subagent:product-owner",
         "subagent:scrum-master",
         "subagent:release-manager",
@@ -3534,6 +3554,7 @@
         "config:agent-metadata",
         "config:readme",
         "agent:opensdlc",
+        "subagent:business-analyst",
         "subagent:product-owner",
         "subagent:scrum-master",
         "subagent:release-manager",
@@ -3556,6 +3577,7 @@
         "agent:openagent",
         "agent:opensdlc",
         "agent:opencoder",
+        "subagent:business-analyst",
         "subagent:product-owner",
         "subagent:scrum-master",
         "subagent:release-manager",
