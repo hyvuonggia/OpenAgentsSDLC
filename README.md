@@ -98,7 +98,7 @@ opencode --agent OpenSDLC
 3. **Product Discovery** — StoryMapper + ProductOwner create epics and stories from the finalised `REQ-XXXX.md` (no re-eliciting in chat)
 4. **Sprint Planning** — ScrumMaster sizes the sprint to capacity, filters by DoR
 5. **You approve** the sprint commitment
-6. **Execution** — CoderAgent implements, TestEngineer tests, CodeReviewer reviews (separation of duties)
+6. **Execution** — CoderAgent implements, TestEngineer tests, TechnicalLead reviews (separation of duties)
 7. **Validation** — ProductOwner accepts against the written criteria
 8. **Release** — ReleaseManager cuts the release with sign-offs and changelog
 
@@ -146,7 +146,7 @@ OpenSDLC orchestrates 20 specialized subagents organized into four groups:
 | **CoderAgent** | Implements individual coding tasks |
 | **BatchExecutor** | Runs parallel batches of tasks within a sprint |
 | **TestEngineer** | Authors unit/integration/acceptance tests (TDD-aligned) |
-| **CodeReviewer** | Independent security + quality review (never reviews its own code) |
+| **TechnicalLead** | Independent security + quality review (never reviews its own code) |
 | **BuildAgent** | Type-checks, lints, validates the build |
 | **DocWriter** | Updates documentation, READMEs, runbooks |
 | **FrontendSpecialist** | React, Vue, modern CSS architecture |
@@ -218,8 +218,8 @@ Every file includes an **Execution Log** — a timestamped append-only log of ev
   │                     Sprint Execution                          │
   │                                                                │
   │  For each story (priority order):                              │
-  │    TaskManager → CoderAgent → BuildAgent → TestEngineer       │
-  │    → CodeReviewer → DocWriter → ADRManager → ProductOwner     │
+     │    TaskManager → CoderAgent → BuildAgent → TestEngineer       │
+     │    → TechnicalLead → DocWriter → ADRManager → ProductOwner     │
   │                                                                │
   │  Separation of duties: coder ≠ reviewer                       │
   │  Stop-on-failure: BUG-XXXX auto-created on test/build fail    │
@@ -247,7 +247,7 @@ Every file includes an **Execution Log** — a timestamped append-only log of ev
 | 1 | **Product Discovery** | StoryMapper / ArchitectureAnalyzer / PrioritizationEngine / ProductOwner read the finalised `REQ-XXXX.md` and produce epics/stories with acceptance criteria | **Yes** — epic + story shape |
 | 2 | **Sprint Planning** | ScrumMaster computes capacity, filters by DoR, proposes commitment | **Yes** — sprint commitment |
 | 3 | **Init Session** | Binds execution to approved sprint, TaskManager creates TSK tickets | No |
-| 4 | **Execute** | CoderAgent implements, BuildAgent validates, TestEngineer tests, CodeReviewer reviews, ProductOwner accepts | Per story |
+| 4 | **Execute** | CoderAgent implements, BuildAgent validates, TestEngineer tests, TechnicalLead reviews, ProductOwner accepts | Per story |
 | 5 | **Daily Standup** | ScrumMaster appends progress, burn-down, blockers to sprint file | No |
 | 6 | **Validate & Triage** | Full DoD enforcement; failures → BUG-XXXX with RCA | On defects |
 | 7 | **Sprint Review** | Done vs Committed, velocity tracking | No |
@@ -267,7 +267,7 @@ OpenSDLC enforces these rules at all times:
 | **Definition of Ready** | Stories must have clear description, Given/When/Then acceptance criteria, estimate, and identified dependencies before entering a sprint. |
 | **Definition of Done** | Code merged + tests passing + code reviewed + docs updated + PO accepted + no P0/P1 defects open. |
 | **Stop on Failure** | Test/build failures immediately create `BUG-XXXX.md` for triage. No silent auto-fixes. |
-| **Separation of Duties** | CoderAgent never reviews its own code. Reviews go to CodeReviewer. Tests by TestEngineer. Acceptance by ProductOwner. |
+| **Separation of Duties** | CoderAgent never reviews its own code. Reviews go to TechnicalLead. Tests by TestEngineer. Acceptance by ProductOwner. |
 | **Audit Trail** | Every state change appends a timestamped line to the ticket's Execution Log. |
 
 ---
@@ -311,7 +311,7 @@ Approve? [y/n]
 - CoderAgent implements each task
 - BuildAgent validates after each task
 - TestEngineer authors tests against the acceptance criteria
-- CodeReviewer performs independent review
+- TechnicalLead performs independent review
 - ProductOwner checks against Given/When/Then → **Accepted**
 - STY-0001 status → Done
 
@@ -391,7 +391,7 @@ A: Yes. Use `opencode --agent OpenSDLC` for features that need full Scrum proces
 A: OpenSDLC immediately creates a `BUG-XXXX.md` with steps to reproduce, expected vs actual behavior, and a fix plan. It then pauses and asks you (the PM) how to triage — never silently auto-fixes.
 
 **Q: How does separation of duties work?**  
-A: CoderAgent writes code. CodeReviewer reviews it (never the same agent). TestEngineer writes tests. ProductOwner accepts. No agent can mark its own work as Done.
+A: CoderAgent writes code. TechnicalLead reviews it (never the same agent). TestEngineer writes tests. ProductOwner accepts. No agent can mark its own work as Done.
 
 **Q: How do I actually drive OpenSDLC day-to-day on a new vs. existing project?**  
 A: See the **[OpenSDLC User Manual](MANUAL.md)** — full Green Field and Brown Field workflows, approval gates, tiered failure handling, and reconciliation.
