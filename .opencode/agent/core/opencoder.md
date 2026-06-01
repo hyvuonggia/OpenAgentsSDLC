@@ -68,6 +68,38 @@ CONSEQUENCE OF SKIPPING: Work that doesn't match project standards = wasted effo
   </rule>
 </critical_rules>
 
+<codegraph_integration>
+**CodeGraph is the preferred code-exploration tool when available.** It is a pre-indexed semantic code knowledge graph (https://github.com/colbymchenry/codegraph) that exposes MCP tools: `codegraph_search`, `codegraph_context`, `codegraph_trace`, `codegraph_callers`, `codegraph_callees`, `codegraph_impact`, `codegraph_node`, `codegraph_explore`, `codegraph_files`, `codegraph_status`. When the tools are present, treat the returned source as already read — do not re-run grep/Read on the same symbols to verify.
+
+**Detect & initialize (run at the start of every code task):**
+1. If any `codegraph_*` MCP tool is exposed in this session, CodeGraph is installed.
+2. Check whether `.codegraph/` exists at the project root.
+3. If CodeGraph is installed but `.codegraph/` is missing → propose `codegraph init -i` to the user, get approval, then run it once. Do NOT silently re-index an existing `.codegraph/` (the file watcher keeps it fresh).
+4. If CodeGraph is NOT installed → fall back to glob/grep/Read as normal. Do not block on it.
+
+**Pick the right tool by intent:**
+
+| Intent | Tool |
+|---|---|
+| Map an area / "how does X work?" | `codegraph_context` |
+| "How does X reach Y?" call path | `codegraph_trace` |
+| Survey several related symbols in one call | `codegraph_explore` |
+| Find a symbol by name | `codegraph_search` |
+| Find callers of a function | `codegraph_callers` |
+| Find what a function calls | `codegraph_callees` |
+| Blast radius before editing | `codegraph_impact` |
+| One symbol's source | `codegraph_node` |
+| Project file tree | `codegraph_files` |
+| Index health / stats | `codegraph_status` |
+
+**Rules:**
+- Treat CodeGraph output as authoritative — do not re-open the same files to verify.
+- Reserve grep for non-code text (config keys, comments, strings, commit messages) where the graph has no edge.
+- For dynamic-dispatch flows (callbacks, React re-render, interface→impl, framework routes, native ↔ JS bridges) prefer `codegraph_trace` — it follows hops grep cannot.
+- Before editing a symbol in Stage 5, run `codegraph_impact` to see what else moves; treat the result as the regression-test surface for `TestEngineer`.
+- After editing, the file watcher auto-syncs (debounced ~2s). Run `codegraph sync` if you need an immediate refresh, and check the staleness banner the MCP server returns.
+</codegraph_integration>
+
 ## Available Subagents (invoke via task tool)
 
 - `ContextScout` - Discover context files BEFORE coding (saves time!)
@@ -131,6 +163,10 @@ Code Standards
   <stage id="1" name="Discover" required="true">
     Goal: Understand what's needed. Nothing written to disk.
 
+    0. **CodeGraph pre-flight** (see `<codegraph_integration>`):
+       - If `codegraph_*` MCP tools are available, treat CodeGraph as the primary code-exploration tool for the rest of the workflow.
+       - If CodeGraph is installed but `.codegraph/` is missing at the project root, propose `codegraph init -i`, get approval, then run it once before any code reading.
+       - If CodeGraph is not installed, skip silently and continue with the steps below.
     1. Call `ContextScout` to discover relevant project context files.
        - ContextScout has paths.json loaded via @ reference (knows the context root)
        - Capture the returned file paths — you will persist these in Stage 3.
@@ -266,8 +302,11 @@ Code Standards
         2. Read all subtask_NN.json files
         3. Build dependency graph from `depends_on` fields
         4. Identify tasks with `parallel: true` flag
+        5. If CodeGraph is available, also run `codegraph_impact` on the symbols each
+           subtask will touch — the result is the regression-test surface `TestEngineer`
+           must cover and feeds back into the per-task risk rating.
       </process>
-      <checkpoint>Dependency graph built, parallel tasks identified</checkpoint>
+      <checkpoint>Dependency graph built, parallel tasks identified, impact surface mapped]<]minimax[>[</checkpoint>
     </step>
 
     <step id="5.1" name="GroupIntoBatches">

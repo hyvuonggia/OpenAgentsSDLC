@@ -108,6 +108,58 @@ Every step is traceable. Every transition is logged. You approve before anything
 
 ---
 
+## 🧠 Optional: CodeGraph (Semantic Code Intelligence)
+
+OpenSDLC / OpenCoder agents can optionally use **[CodeGraph](https://github.com/colbymchenry/codegraph)** — a pre-indexed semantic code knowledge graph that gives agents instant access to symbol relationships, call graphs, and code structure without burning tokens on grep/Read loops.
+
+**Benefits**: ~25% cheaper · ~62% fewer tool calls · 100% local. Supports 20+ languages and auto-detects web-framework routes + native-bridge flows (Swift ↔ ObjC, React Native TurboModules, Expo Modules, Fabric/Paper view managers, etc.).
+
+### Install (one-time, on the host running your opencode instance)
+
+```bash
+# macOS / Linux
+curl -fsSL https://raw.githubusercontent.com/colbymchenry/codegraph/main/install.sh | sh
+
+# Windows (PowerShell)
+irm https://raw.githubusercontent.com/colbymchenry/codegraph/main/install.ps1 | iex
+
+# Or via npm (any Node version)
+npm i -g @colbymchenry/codegraph
+```
+
+The interactive installer auto-detects installed agents (Claude Code, Cursor, Codex CLI, **opencode**, Hermes Agent, Gemini CLI, Antigravity, Kiro), wires up the MCP server, and sets auto-allow permissions. The CodeGraph usage guide is delivered to your agent by the MCP server itself at startup — no instructions file is added to this README or to `opencoder.md`.
+
+### Initialize a project
+
+```bash
+cd your-project
+codegraph init -i
+```
+
+`codegraph init` creates the local `.codegraph/` index directory; adding `-i` (`--index`) also builds the initial graph in the same step. The file watcher keeps the graph fresh on save — no `codegraph sync` needed during normal work.
+
+### What OpenCoder / OpenSDLC do with it
+
+When CodeGraph is available, agents prefer its MCP tools over grep/Read for code exploration:
+
+- `codegraph_context` — map an area, answer "how does X work?"
+- `codegraph_trace` — follow a call path from `X` to `Y`, including dynamic-dispatch hops
+- `codegraph_callers` / `codegraph_callees` — walk the call graph in either direction
+- `codegraph_impact` — blast radius before editing (feeds the regression-test surface)
+- `codegraph_search` / `codegraph_node` / `codegraph_explore` — symbol lookup at symbol, list, or grouped-source level
+- `codegraph_files` / `codegraph_status` — fast project tree and index health
+
+If CodeGraph is installed in the opencode instance but a project has no `.codegraph/` index yet, the agent will propose `codegraph init -i` (and ask for approval) before reading code. If CodeGraph is not installed at all, the agent silently falls back to the normal glob/grep/Read path.
+
+### Uninstall
+
+```bash
+codegraph uninstall         # strips MCP config from every configured agent
+codegraph uninit            # removes a project's .codegraph/ folder
+```
+
+---
+
 ## 👥 The Scrum Team — 20 Subagents
 
 OpenSDLC orchestrates 20 specialized subagents organized into four groups:
